@@ -1,0 +1,488 @@
+<!DOCTYPE html>
+<html lang="en" class="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Year Loading</title>
+    
+    <!-- SOCIAL PREVIEW -->
+    <meta property="og:title" content="Year Loading ⏳">
+    <meta property="og:description" content="Track the exact progress of the current year in real-time.">
+    <meta property="og:image" content="https://Marwan-Official.github.io/Year-Loading/preview.png">
+    <meta property="og:url" content="https://Marwan-Official.github.io/Year-Loading/">
+    <meta property="og:type" content="website">
+    
+    <meta name="twitter:card" content="summary_large_image">
+    <meta name="twitter:title" content="Year Loading ⏳">
+    <meta name="twitter:description" content="Track the exact progress of the current year in real-time.">
+    <meta name="twitter:image" content="https://Marwan-Official.github.io/Year-Loading/preview.png">
+
+    <!-- Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@300;400;700&family=Outfit:wght@300;400;700;800&display=swap" rel="stylesheet">
+    
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    colors: {
+                        'amoled': '#000000',
+                        'light-bg': '#F9FAFB', 
+                        'bar-bg-dark': '#1A1A1A', 
+                        'bar-bg-light': '#E5E7EB',
+                        'theme-dark': 'var(--theme-dark)',
+                        'theme-light': 'var(--theme-light)',
+                    },
+                    fontFamily: {
+                        sans: ['"Outfit"', 'sans-serif'],
+                        cairo: ['"Cairo"', 'sans-serif'],
+                    },
+                    animation: {
+                        'float': 'float 20s infinite linear',
+                        'pulse-slow': 'pulse-glow 4s cubic-bezier(0.4, 0, 0.6, 1) infinite',
+                        'fade-in-entry': 'fadeIn 1.5s ease-out forwards',
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        :root {
+            --theme-dark: #00DC82;
+            --theme-light: #059669;
+            --theme-shadow-rgb: 0, 220, 130; 
+        }
+
+        @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+
+        body {
+            transition: background-color 0.7s cubic-bezier(0.4, 0, 0.2, 1), 
+                        color 0.7s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        div, p, h1, span, button, svg {
+            transition-property: background-color, border-color, color, fill, stroke, transform, opacity, box-shadow;
+            transition-duration: 700ms;
+            transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        #progressBar {
+            transition: width 0.1s linear, background-color 0.7s cubic-bezier(0.4, 0, 0.2, 1), opacity 0.3s ease; 
+        }
+        
+        #percentageWrapper { transition: opacity 0.3s ease; }
+        ::-webkit-scrollbar { width: 0px; background: transparent; }
+        .dark body { background-color: #000000; }
+        .tabular-nums { font-variant-numeric: tabular-nums; }
+        
+        .extra-decimals {
+            display: inline-block;
+            overflow: hidden;
+            white-space: nowrap;
+            vertical-align: bottom;
+            transition: max-width 0.5s cubic-bezier(0.4, 0, 0.2, 1), opacity 0.5s ease;
+        }
+
+        .dropdown-enter {
+            opacity: 0;
+            transform: translateY(-10px) scale(0.95);
+            pointer-events: none;
+        }
+        .dropdown-active {
+            opacity: 1;
+            transform: translateY(0) scale(1);
+            pointer-events: auto;
+        }
+
+        @keyframes pulse-glow {
+            0%, 100% { box-shadow: 0 0 10px rgba(var(--theme-shadow-rgb), 0.1); }
+            50% { box-shadow: 0 0 25px rgba(var(--theme-shadow-rgb), 0.5); }
+        }
+
+        @keyframes float {
+            0% { transform: translateY(100vh) scale(0); opacity: 0; }
+            20% { opacity: var(--p-opacity); }
+            80% { opacity: var(--p-opacity); }
+            100% { transform: translateY(-10vh) scale(1); opacity: 0; }
+        }
+
+        .particle {
+            position: absolute;
+            border-radius: 50%;
+            pointer-events: none;
+            animation: float linear infinite;
+        }
+    </style>
+</head>
+<body class="bg-light-bg text-gray-900 dark:bg-amoled dark:text-white h-[100dvh] flex flex-col items-center justify-center relative select-none overflow-hidden animate-fade-in-entry">
+
+    <!-- ATMOSPHERE -->
+    <div id="particlesContainer" class="absolute inset-0 z-0 overflow-hidden pointer-events-none"></div>
+
+    <!-- Controls -->
+    <div class="absolute top-6 right-6 flex items-center gap-4 text-xs md:text-sm font-semibold tracking-wider text-gray-400 dark:text-gray-500 z-50">
+        
+        <button id="langToggle" onclick="toggleLanguage()" class="hover:text-black dark:hover:text-white transition-colors uppercase py-2">AR</button>
+        <button id="timeToggle" onclick="toggleTimeFormat()" class="hover:text-black dark:hover:text-white transition-colors py-2">24H</button>
+
+        <!-- Color Toggle -->
+        <div class="relative">
+            <button id="colorToggle" onclick="toggleColorDropdown(event)" class="hover:text-theme-light dark:hover:text-theme-dark transition-colors py-2 group" aria-label="Change Color">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 transform transition-transform group-hover:scale-110" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M7 21a4 4 0 01-4-4V5a2 2 0 012-2h4a2 2 0 012 2v12a4 4 0 01-4 4zm0 0h12a2 2 0 002-2v-4a2 2 0 00-2-2h-2.343M11 7.343l1.657-1.657a2 2 0 012.828 0l2.829 2.829a2 2 0 010 2.828l-8.486 8.485M7 17h.01" />
+                </svg>
+            </button>
+            <div id="colorDropdown" class="absolute right-0 top-full mt-2 w-10 flex flex-col gap-2 items-center bg-white dark:bg-bar-bg-dark p-2 rounded-full shadow-lg border border-gray-100 dark:border-gray-800 transition-all duration-300 dropdown-enter">
+                <button onclick="selectColor(0)" class="w-6 h-6 rounded-full bg-[#00DC82] hover:scale-110 transition-transform shadow-sm"></button>
+                <button onclick="selectColor(1)" class="w-6 h-6 rounded-full bg-[#FF3B30] hover:scale-110 transition-transform shadow-sm"></button>
+                <button onclick="selectColor(2)" class="w-6 h-6 rounded-full bg-[#3B82F6] hover:scale-110 transition-transform shadow-sm"></button>
+                <button onclick="selectColor(3)" class="w-6 h-6 rounded-full bg-[#FACC15] hover:scale-110 transition-transform shadow-sm"></button>
+            </div>
+        </div>
+
+        <button id="themeToggle" onclick="toggleTheme()" class="hover:text-black dark:hover:text-white transition-all transform hover:scale-110 active:scale-95 p-1 relative w-6 h-6">
+            <div id="iconWrapper" class="relative w-full h-full flex items-center justify-center">
+                <svg id="sunIcon" xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 absolute transition-all duration-700 ease-out transform opacity-0 scale-50 rotate-90" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z" />
+                </svg>
+                <svg id="moonIcon" xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 absolute transition-all duration-700 ease-out transform opacity-0 scale-50 -rotate-90" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z" />
+                </svg>
+            </div>
+        </button>
+    </div>
+
+    <!-- Main Content -->
+    <div id="mainContainer" class="w-full max-w-lg px-8 flex flex-col justify-center transition-opacity duration-300 z-10 relative">
+        <div class="mb-4 text-center md:text-start">
+             <h1 class="text-3xl md:text-5xl font-extrabold tracking-tight mb-2 flex flex-col md:flex-row items-center md:items-baseline gap-1 md:gap-3">
+                <div id="percentageWrapper" onclick="togglePrecision()" class="cursor-pointer group flex items-baseline text-theme-light dark:text-theme-dark hover:opacity-80 transition-opacity justify-center md:justify-start">
+                    <span dir="ltr" class="flex items-baseline">
+                        <span id="percentMain" class="tabular-nums">0.0</span>
+                        <span id="percentExtra" class="extra-decimals tabular-nums max-w-0 opacity-0 text-2xl md:text-4xl"></span>
+                    </span>
+                    <span class="ms-1">%</span>
+                </div>
+                <!-- Removed default 'Loading...' text to avoid glitches. JS populates it. -->
+                <span id="progressText" class="font-normal text-gray-900 dark:text-gray-200 text-xl md:text-3xl transition-transform duration-500"></span>
+            </h1>
+            <p id="dateDisplay" class="text-sm md:text-base text-gray-500 dark:text-gray-500 font-medium tracking-wide tabular-nums transition-opacity duration-300"></p>
+        </div>
+
+        <div id="progressBarContainer" class="w-full h-10 md:h-12 bg-bar-bg-light dark:bg-bar-bg-dark rounded-xl overflow-hidden relative border border-gray-200 dark:border-transparent transition-colors duration-700">
+            <div id="progressBar" style="width: 0%" class="h-full bg-theme-light dark:bg-theme-dark relative z-20 animate-pulse-slow"></div>
+        </div>
+    </div>
+
+    <div class="absolute bottom-8 w-full text-center px-4 z-10">
+        <p id="footerText" class="text-[10px] md:text-xs text-gray-400 dark:text-gray-500 font-medium uppercase tracking-widest hover:text-gray-600 dark:hover:text-gray-300 transition-colors cursor-default transition-opacity duration-300">
+            Created by Marwan Elmoghazy
+        </p>
+    </div>
+
+    <script>
+        // Wait for DOM to be fully loaded before running anything
+        document.addEventListener('DOMContentLoaded', () => {
+
+            // --- Safe Storage ---
+            const safeStorage = {
+                getItem: (key) => { try { return localStorage.getItem(key); } catch (e) { return null; } },
+                setItem: (key, val) => { try { localStorage.setItem(key, val); } catch (e) {} }
+            };
+
+            // --- State ---
+            let lang = safeStorage.getItem('saved_lang') || 'en'; 
+            let is24Hour = safeStorage.getItem('saved_is24Hour') === 'true'; 
+            let currentColorIndex = parseInt(safeStorage.getItem('saved_color_index')) || 0;
+            let animationComplete = false;
+            let animationFrameId; 
+            let showPrecision = false;
+            let dropdownOpen = false;
+            const currentYear = new Date().getFullYear();
+
+            // --- Themes ---
+            const colorThemes = [
+                { name: 'green',  light: '#059669', dark: '#00DC82', shadow: '0, 220, 130' },   
+                { name: 'red',    light: '#DC2626', dark: '#FF3B30', shadow: '255, 59, 48' },   
+                { name: 'blue',   light: '#2563EB', dark: '#3B82F6', shadow: '59, 130, 246' },  
+                // UPDATED YELLOW: Changed light from #D97706 (Amber) to #CA8A04 (Yellow-600)
+                { name: 'yellow', light: '#CA8A04', dark: '#FACC15', shadow: '250, 204, 21' }   
+            ];
+            if (currentColorIndex < 0 || currentColorIndex >= colorThemes.length) currentColorIndex = 0;
+
+            // --- Elements (Safe Getters) ---
+            const el = (id) => document.getElementById(id);
+            const mainContainer = el('mainContainer');
+            const percentMainEl = el('percentMain');
+            const percentExtraEl = el('percentExtra');
+            const percentWrapper = el('percentageWrapper');
+            const textEl = el('progressText');
+            const dateEl = el('dateDisplay');
+            const barEl = el('progressBar');
+            const footerEl = el('footerText');
+            const dropdownEl = el('colorDropdown');
+            const particlesContainer = el('particlesContainer');
+            const langBtn = el('langToggle');
+            const timeBtn = el('timeToggle');
+
+            // --- Logic ---
+
+            function getProgressData() {
+                const now = new Date();
+                const start = new Date(now.getFullYear(), 0, 1);
+                const end = new Date(now.getFullYear() + 1, 0, 1);
+                const percent = ((now - start) / (end - start)) * 100;
+                return { percent, now };
+            }
+
+            function applyColorTheme(index) {
+                if (!colorThemes[index]) index = 0;
+                const theme = colorThemes[index];
+                document.documentElement.style.setProperty('--theme-light', theme.light);
+                document.documentElement.style.setProperty('--theme-dark', theme.dark);
+                document.documentElement.style.setProperty('--theme-shadow-rgb', theme.shadow);
+            }
+
+            // Expose specific functions to window so HTML onclick works
+            window.toggleColorDropdown = (e) => {
+                e.stopPropagation();
+                if (dropdownOpen) closeDropdown();
+                else openDropdown();
+            };
+
+            window.selectColor = (index) => {
+                if (index === currentColorIndex) { closeDropdown(); return; }
+                percentWrapper.style.opacity = '0.4';
+                barEl.style.opacity = '0.5';
+                setTimeout(() => {
+                    currentColorIndex = index;
+                    safeStorage.setItem('saved_color_index', currentColorIndex);
+                    applyColorTheme(currentColorIndex);
+                    percentWrapper.style.opacity = '1';
+                    barEl.style.opacity = '1';
+                }, 300);
+                closeDropdown();
+            };
+
+            window.togglePrecision = () => {
+                showPrecision = !showPrecision;
+                if (percentExtraEl) {
+                    percentExtraEl.classList.toggle('max-w-0', !showPrecision);
+                    percentExtraEl.classList.toggle('opacity-0', !showPrecision);
+                    percentExtraEl.classList.toggle('max-w-[200px]', showPrecision);
+                    percentExtraEl.classList.toggle('opacity-100', showPrecision);
+                }
+            };
+
+            window.toggleLanguage = () => {
+                if(mainContainer) mainContainer.classList.add('opacity-0');
+                if(footerEl) footerEl.classList.add('opacity-0');
+                setTimeout(() => {
+                    lang = lang === 'en' ? 'ar' : 'en';
+                    safeStorage.setItem('saved_lang', lang); 
+                    updateUI();
+                    startAnimation();
+                    if(mainContainer) mainContainer.classList.remove('opacity-0');
+                    if(footerEl) footerEl.classList.remove('opacity-0');
+                }, 300);
+            };
+
+            window.toggleTimeFormat = () => {
+                if(dateEl) dateEl.classList.add('opacity-0');
+                setTimeout(() => {
+                    is24Hour = !is24Hour;
+                    safeStorage.setItem('saved_is24Hour', is24Hour); 
+                    updateUI();
+                    if(dateEl) dateEl.classList.remove('opacity-0');
+                }, 300);
+            };
+
+            window.toggleTheme = () => {
+                const isDark = document.documentElement.classList.toggle('dark');
+                safeStorage.setItem('saved_theme', isDark ? 'dark' : 'light');
+                updateThemeIcon(isDark);
+            };
+
+            function openDropdown() {
+                dropdownEl.classList.remove('dropdown-enter');
+                dropdownEl.classList.add('dropdown-active');
+                dropdownOpen = true;
+            }
+
+            function closeDropdown() {
+                dropdownEl.classList.remove('dropdown-active');
+                dropdownEl.classList.add('dropdown-enter');
+                dropdownOpen = false;
+            }
+
+            document.addEventListener('click', (e) => {
+                if (dropdownOpen && !e.target.closest('#colorToggle') && !e.target.closest('#colorDropdown')) {
+                    closeDropdown();
+                }
+            });
+
+            function createParticles() {
+                if (!particlesContainer) return;
+                particlesContainer.innerHTML = ''; 
+                for(let i=0; i<20; i++) {
+                    const p = document.createElement('div');
+                    p.classList.add('particle');
+                    const size = Math.random() * 3 + 1 + 'px';
+                    p.style.width = size;
+                    p.style.height = size;
+                    p.style.left = Math.random() * 100 + '%';
+                    p.style.animationDuration = (Math.random() * 20 + 15) + 's';
+                    p.style.animationDelay = (Math.random() * -30) + 's';
+                    p.style.setProperty('--p-opacity', Math.random() * 0.3 + 0.1);
+                    p.classList.add('bg-gray-400', 'dark:bg-white');
+                    particlesContainer.appendChild(p);
+                }
+            }
+
+            function startAnimation() {
+                if (animationFrameId) cancelAnimationFrame(animationFrameId);
+                
+                animationComplete = false;
+                const finalData = getProgressData();
+                const finalPercent = finalData.percent;
+
+                if (barEl) {
+                    barEl.style.transition = 'none';
+                    barEl.style.width = '0%';
+                    void barEl.offsetWidth; 
+                    barEl.style.transition = 'width 2s cubic-bezier(0.22, 1, 0.36, 1), background-color 0.7s, opacity 0.3s';
+                    setTimeout(() => { barEl.style.width = `${finalData.percent}%`; }, 50);
+                }
+
+                const duration = 2000;
+                const startTime = performance.now();
+
+                function introLoop(currentTime) {
+                    const elapsed = currentTime - startTime;
+                    const progress = Math.min(elapsed / duration, 1);
+                    const easeOut = 1 - Math.pow(1 - progress, 3);
+                    const currentVal = easeOut * finalPercent;
+                    
+                    if (percentMainEl) {
+                         // Safely format
+                         const valStr = currentVal.toFixed(8);
+                         const dotIndex = valStr.indexOf('.');
+                         if (dotIndex !== -1) {
+                            percentMainEl.innerText = valStr.substring(0, dotIndex + 2);
+                            if(percentExtraEl) percentExtraEl.innerText = valStr.substring(dotIndex + 2);
+                         } else {
+                            percentMainEl.innerText = valStr;
+                         }
+                    }
+
+                    if (progress < 1) {
+                        animationFrameId = requestAnimationFrame(introLoop);
+                    } else {
+                        animationComplete = true;
+                        // Ensure perfect sync at end
+                        if(barEl) barEl.style.width = `${finalData.percent}%`;
+                        updateUI(); // Final UI update
+                    }
+                }
+                animationFrameId = requestAnimationFrame(introLoop);
+            }
+
+            function updateUI() {
+                try {
+                    const data = getProgressData();
+                    const datePart = data.now.toLocaleDateString(lang === 'en' ? 'en-US' : 'ar-EG', { 
+                        month: 'long', day: 'numeric', year: 'numeric'
+                    });
+                    const timePart = data.now.toLocaleTimeString(lang === 'en' ? 'en-US' : 'ar-EG', { 
+                        hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: !is24Hour 
+                    });
+
+                    // Update Text
+                    if (lang === 'en') {
+                        if(textEl) textEl.innerText = `of ${currentYear} has passed`;
+                        if(footerEl) footerEl.innerText = "Created by Marwan Elmoghazy.";
+                        if(langBtn) langBtn.innerText = "AR";
+                        if(timeBtn) timeBtn.innerText = is24Hour ? "12H" : "24H";
+                        if(dateEl) dateEl.innerText = `${datePart} • ${timePart}`;
+                        
+                        document.body.classList.remove('font-cairo');
+                        document.body.classList.add('font-sans');
+                        document.body.setAttribute('dir', 'ltr');
+                    } else {
+                        if(textEl) textEl.innerText = `من عام ${currentYear} قد انقضى`;
+                        if(footerEl) footerEl.innerText = "تم الإنشاء والتطوير بواسطة مروان المغازي.";
+                        if(langBtn) langBtn.innerText = "EN";
+                        if(timeBtn) timeBtn.innerText = is24Hour ? "١٢ س" : "٢٤ س";
+                        if(dateEl) dateEl.innerText = `${datePart} • ${timePart}`;
+
+                        document.body.classList.remove('font-sans');
+                        document.body.classList.add('font-cairo');
+                        document.body.setAttribute('dir', 'rtl');
+                    }
+
+                    // Force Number Update if animation done
+                    if (animationComplete && percentMainEl) {
+                        const valStr = data.percent.toFixed(8);
+                        const dotIndex = valStr.indexOf('.');
+                        percentMainEl.innerText = valStr.substring(0, dotIndex + 2);
+                        if(percentExtraEl) percentExtraEl.innerText = valStr.substring(dotIndex + 2);
+                    }
+                } catch(e) {
+                    console.error("UI Update Error", e);
+                }
+            }
+
+            function appLoop() {
+                if(animationComplete) updateUI();
+                requestAnimationFrame(appLoop);
+            }
+
+            function updateThemeIcon(isDark) {
+                const sun = el('sunIcon');
+                const moon = el('moonIcon');
+                if(!sun || !moon) return;
+                
+                if (isDark) {
+                    sun.classList.remove('opacity-100', 'scale-100', 'rotate-0');
+                    sun.classList.add('opacity-0', 'scale-50', 'rotate-90');
+                    moon.classList.remove('opacity-0', 'scale-50', '-rotate-90');
+                    moon.classList.add('opacity-100', 'scale-100', 'rotate-0');
+                } else {
+                    moon.classList.remove('opacity-100', 'scale-100', 'rotate-0');
+                    moon.classList.add('opacity-0', 'scale-50', '-rotate-90');
+                    sun.classList.remove('opacity-0', 'scale-50', 'rotate-90');
+                    sun.classList.add('opacity-100', 'scale-100', 'rotate-0');
+                }
+            }
+
+            // --- INITIALIZATION SEQUENCE ---
+            try {
+                const savedTheme = safeStorage.getItem('saved_theme');
+                let isDark;
+                if (savedTheme) isDark = savedTheme === 'dark';
+                else isDark = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches;
+                
+                if (isDark) document.documentElement.classList.add('dark');
+                else document.documentElement.classList.remove('dark');
+                
+                updateThemeIcon(isDark);
+                applyColorTheme(currentColorIndex);
+                createParticles();
+                updateUI();
+                startAnimation();
+                requestAnimationFrame(appLoop);
+            } catch(e) {
+                console.error("Init Error", e);
+                // Fallback to show something
+                if(textEl) textEl.innerText = "Loaded";
+                if(percentMainEl) percentMainEl.innerText = "0.0";
+            }
+        });
+    </script>
+</body>
+</html>
+
+
